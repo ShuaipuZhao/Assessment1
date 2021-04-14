@@ -40,10 +40,19 @@ public class GameScreen implements Screen {
     private int frameIndex;
     private float stateTime;
 
+    private  float heightM,widthM;
+
     private Music music;
     private Sound sound;
 
     private Stage stage;
+    private Skin skin;
+
+    private int gamestatus;
+    public static final int GAME_RUNNING=0;
+    public static final int Game_PAUSE=0;
+
+    private Stage PauseStage;
 
     SpriteBatch spriteBatch;
     SpriteBatch UiBatch;
@@ -51,6 +60,7 @@ public class GameScreen implements Screen {
     TiledMapRenderer tiledMapRenderer;
     OrthographicCamera camera;
     MyGdxGame game;
+
 
     public GameScreen(MyGdxGame game) {
 
@@ -62,6 +72,59 @@ public class GameScreen implements Screen {
         //Rendering
         spriteBatch=new SpriteBatch();
 //        UiBatch=new SpriteBatch();
+        skin = new Skin(Gdx.files.internal("gui/uiskin.json"));
+        stage = new Stage();
+
+        final TextButton PauseButton = new TextButton("Pause", skin, "default");
+        final TextButton JumpButton = new TextButton("Jump", skin, "default");
+        PauseButton.getLabel().setFontScale(3.0f);
+        PauseButton.setWidth(400f);
+        PauseButton.setHeight(100f);
+        PauseButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 250f);
+        stage.addActor(PauseButton);
+        JumpButton.getLabel().setFontScale(3.0f);
+        JumpButton.setWidth(400f);
+        JumpButton.setHeight(100f);
+        JumpButton.setPosition(Gdx.graphics.getWidth() - 500f, Gdx.graphics.getHeight()/2 - 400f);
+        stage.addActor(JumpButton);
+        Gdx.input.setInputProcessor(stage);
+
+        PauseButton.addListener(new ClickListener() {
+            @Override
+            public void clicked (InputEvent event, float x, float y) {
+                pauseGame();
+                if(gamestatus==Game_PAUSE){
+                    final TextButton ContinueButton = new TextButton("Continue", skin, "default");
+                    ContinueButton.getLabel().setFontScale(3.0f);
+                    ContinueButton.setWidth(400f);
+                    ContinueButton.setHeight(100f);
+                    ContinueButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 250f);
+                    currentFrame = (TextureRegion) walkAnimation.getKeyFrame(stateTime, false);
+                    stage.addActor(ContinueButton);
+                    Gdx.input.setInputProcessor(PauseStage);
+                    ContinueButton.addListener(new ClickListener() {
+                        @Override
+                        public void clicked (InputEvent event, float x, float y) {
+
+                        }
+                    });
+                }
+            }
+        });
+
+        JumpButton.addListener(new ClickListener() {
+            @Override
+            public void clicked (InputEvent event, float x, float y) {
+
+            }
+        });
+
+
+
+
+
+
+
 
         //Initiate the TiledMap and its renderer
         tiledMap = new TmxMapLoader().load("level1.tmx");
@@ -122,10 +185,17 @@ public class GameScreen implements Screen {
 //        Gdx.app.log("MyGdxGame: ","changed screen to menuScreen");
 //        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         stateTime += Gdx.graphics.getDeltaTime();
+        camera.position.y=500;
         camera.update();
 
-        spriteBatch.draw(currentFrame,1,1);
+
+        spriteBatch.draw(currentFrame,1,Gdx.graphics.getHeight() /2-130f);
 		spriteBatch.end();
+
+        stage.draw();
+//        UiBatch.begin();
+
+//        UiBatch.end();
 
 
     }
@@ -150,7 +220,11 @@ public class GameScreen implements Screen {
 
     @Override
     public void pause() {
+        pauseGame();
+    }
 
+    private void pauseGame() {
+        gamestatus=Game_PAUSE;
     }
 
     @Override
