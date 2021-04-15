@@ -27,6 +27,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import javax.swing.DropMode;
 import javax.swing.JViewport;
 
 public class GameScreen implements Screen {
@@ -40,6 +41,18 @@ public class GameScreen implements Screen {
     private int frameIndex;
     private float stateTime;
 
+    private Texture JumpSheet;
+    private TextureRegion[] JumpFrames;
+    private Animation JumpAnimation;
+    private TextureRegion JumpcurrentFrame;
+    private float JumpstateTime;
+
+    private Texture DropSheet;
+    private TextureRegion[] DropFrames;
+    private Animation DropAnimation;
+    private TextureRegion DropcurrentFrame;
+    private float DropstateTime;
+
     private  float heightM,widthM;
 
     private Music music;
@@ -47,10 +60,6 @@ public class GameScreen implements Screen {
 
     private Stage stage;
     private Skin skin;
-
-    private int gamestatus;
-    public static final int GAME_RUNNING=0;
-    public static final int Game_PAUSE=0;
 
     private Stage PauseStage;
 
@@ -61,21 +70,60 @@ public class GameScreen implements Screen {
     OrthographicCamera camera;
     MyGdxGame game;
 
+    private float playerX;
+    private float playerY;
+
+    enum GameSta{
+        RUN,
+        PAUSE,
+        JUMP,
+        DROP,
+        FINISH,
+        DEAD
+    }
+
+    GameSta state;
+    GameSta prestate;
+
+    TextButton PauseButton;
 
     public GameScreen(MyGdxGame game) {
 
         this.game = game;
     }
     public void create() {
+
+        state = GameSta.RUN;
+        prestate = state;
         Gdx.app.log("GameScreen: ","gameScreen create");
 
         //Rendering
         spriteBatch=new SpriteBatch();
-//        UiBatch=new SpriteBatch();
         skin = new Skin(Gdx.files.internal("gui/uiskin.json"));
         stage = new Stage();
 
-        final TextButton PauseButton = new TextButton("Pause", skin, "default");
+
+
+        final TextButton ContinueButton = new TextButton("Continue", skin, "default");
+        ContinueButton.getLabel().setFontScale(3.0f);
+        ContinueButton.setWidth(400f);
+        ContinueButton.setHeight(100f);
+        ContinueButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 250f);
+        stage.addActor(ContinueButton);
+        Gdx.input.setInputProcessor(stage);
+        ContinueButton.setVisible(false);
+        ContinueButton.addListener(new ClickListener() {
+            @Override
+            public void clicked (InputEvent event, float x, float y) {
+
+                state = prestate;
+                ContinueButton.setVisible(false);
+                PauseButton.setVisible(true);
+            }
+        });
+
+
+        PauseButton = new TextButton("Pause", skin, "default");
         final TextButton JumpButton = new TextButton("Jump", skin, "default");
         PauseButton.getLabel().setFontScale(3.0f);
         PauseButton.setWidth(400f);
@@ -83,47 +131,30 @@ public class GameScreen implements Screen {
         PauseButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 250f);
         stage.addActor(PauseButton);
         JumpButton.getLabel().setFontScale(3.0f);
-        JumpButton.setWidth(400f);
+        JumpButton.setWidth(1000f);
         JumpButton.setHeight(100f);
-        JumpButton.setPosition(Gdx.graphics.getWidth() - 500f, Gdx.graphics.getHeight()/2 - 400f);
+        JumpButton.setPosition(Gdx.graphics.getWidth()/2 - 500f, Gdx.graphics.getHeight()/2 - 500f);
         stage.addActor(JumpButton);
         Gdx.input.setInputProcessor(stage);
 
         PauseButton.addListener(new ClickListener() {
             @Override
             public void clicked (InputEvent event, float x, float y) {
-                pauseGame();
-                if(gamestatus==Game_PAUSE){
-                    final TextButton ContinueButton = new TextButton("Continue", skin, "default");
-                    ContinueButton.getLabel().setFontScale(3.0f);
-                    ContinueButton.setWidth(400f);
-                    ContinueButton.setHeight(100f);
-                    ContinueButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 250f);
-                    currentFrame = (TextureRegion) walkAnimation.getKeyFrame(stateTime, false);
-                    stage.addActor(ContinueButton);
-                    Gdx.input.setInputProcessor(PauseStage);
-                    ContinueButton.addListener(new ClickListener() {
-                        @Override
-                        public void clicked (InputEvent event, float x, float y) {
-
-                        }
-                    });
-                }
+                state = GameSta.PAUSE;
+                PauseButton.setVisible(false);
+                ContinueButton.setVisible(true);
             }
         });
 
         JumpButton.addListener(new ClickListener() {
             @Override
             public void clicked (InputEvent event, float x, float y) {
-
+                // jump
+                state = GameSta.JUMP;
+                prestate = GameSta.JUMP;
+                sound.play(20f);
             }
         });
-
-
-
-
-
-
 
 
         //Initiate the TiledMap and its renderer
@@ -135,10 +166,12 @@ public class GameScreen implements Screen {
         float h = Gdx.graphics.getHeight();
         camera = new OrthographicCamera();
         camera.setToOrtho(false, w / 2, h / 2);
+        camera.position.y=600;
+        camera.position.x = w/4;
+        playerX = camera.position.x;
+        playerY = camera.position.y;
 
-
-
-        //take out each frame put into to array to display
+                //take out each frame put into to array to display
         walkSheet=new Texture(Gdx.files.internal("running.png"));
         TextureRegion[][] temp = TextureRegion.split(walkSheet, walkSheet.getWidth() / FRAME_COLS, walkSheet.getHeight() / FRAME_ROWS);
         walkFrames = new TextureRegion[FRAME_COLS * FRAME_ROWS];
@@ -154,10 +187,45 @@ public class GameScreen implements Screen {
 
 
 
+
+        //take out each frame put into to array to display
+        JumpSheet=new Texture(Gdx.files.internal("jumping start.png"));
+        temp = TextureRegion.split(JumpSheet, JumpSheet.getWidth() / 3, JumpSheet.getHeight() / 1);
+        JumpFrames = new TextureRegion[3 * 1];
+        index = 0;
+        for (int i = 0; i < 1; i++) {
+            for (int j = 0; j < 3; j++) {
+                JumpFrames[index++] = temp[i][j];
+            }
+        }
+        //set the speed for each frame
+        JumpAnimation=new Animation(0.2f,JumpFrames);
+        JumpstateTime=0.0f;
+
+
+
+
+        DropSheet=new Texture(Gdx.files.internal("jumping end.png"));
+        temp = TextureRegion.split(DropSheet, DropSheet.getWidth() / 2, DropSheet.getHeight() / 1);
+        DropFrames = new TextureRegion[2 * 1];
+        index = 0;
+        for (int i = 0; i < 1; i++) {
+            for (int j = 0; j < 2; j++) {
+                DropFrames[index++] = temp[i][j];
+            }
+        }
+        //set the speed for each frame
+        DropAnimation=new Animation(0.4f,DropFrames);
+        DropstateTime=0.0f;
+
+
+
+
           music=Gdx.audio.newMusic(Gdx.files.internal("fanfare.ogg"));
           music.setLooping(true);
           music.play();
-//          sound=Gdx.audio.newSound(Gdx.files.internal(""));
+          //Boing Raw Copyright 2005 cfork <http://freesound.org/people/cfork/> Boing Jump Copyright 2012 Iwan Gabovitch <http://qubodup.net>
+          sound=Gdx.audio.newSound(Gdx.files.internal("qubodup-cfork-ccby3-jump.ogg"));
 
 
 
@@ -172,30 +240,78 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA); //Allows transparent sprites/tiles
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        spriteBatch.begin();
 
+        spriteBatch.begin();
         currentFrame = (TextureRegion) walkAnimation.getKeyFrame(stateTime, true);
+
+
 
         // Render Map Here
         tiledMapRenderer.setView(camera);
         tiledMapRenderer.render();
 
 
-//        // Change screens to the menu
-//        Gdx.app.log("MyGdxGame: ","changed screen to menuScreen");
-//        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-        stateTime += Gdx.graphics.getDeltaTime();
-        camera.position.y=500;
+
+        if(state == GameSta.RUN ){
+            stateTime += Gdx.graphics.getDeltaTime();
+            camera.position.x += 10;
+            playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
+        }else if(state == GameSta.JUMP){
+            JumpcurrentFrame = (TextureRegion) JumpAnimation.getKeyFrame(JumpstateTime, false);
+            JumpstateTime += Gdx.graphics.getDeltaTime();
+            camera.position.x += 10;
+            playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
+        } else if(state == GameSta.DROP){
+            DropcurrentFrame = (TextureRegion) DropAnimation.getKeyFrame(DropstateTime, false);
+            DropstateTime += Gdx.graphics.getDeltaTime();
+            camera.position.x += 10;
+            playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
+        }else if(state == GameSta.PAUSE){
+            stateTime += 0;
+            camera.position.x += 0;
+            playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
+        }
+
+        if(state == GameSta.RUN){
+            playerY = Gdx.graphics.getHeight() /2-130f;
+        }else if(state == GameSta.JUMP){
+
+            playerY += 4;
+            if(playerY > 600){
+                state = GameSta.DROP;
+                prestate = GameSta.DROP;
+                DropcurrentFrame = (TextureRegion) DropAnimation.getKeyFrame(DropstateTime, false);
+                // reset jump animation
+                JumpstateTime=0.0f;
+            }
+        }else if(state == GameSta.DROP){
+            playerY -= 4;
+            if(playerY <= Gdx.graphics.getHeight() /2-130f){
+                state = GameSta.RUN;
+                prestate = GameSta.RUN;
+                DropstateTime=0.0f;
+            }
+        }
+
         camera.update();
 
 
-        spriteBatch.draw(currentFrame,1,Gdx.graphics.getHeight() /2-130f);
+        if(state == GameSta.RUN){
+            spriteBatch.draw(currentFrame, playerX , playerY);
+        }else if(state == GameSta.JUMP){
+
+            spriteBatch.draw(JumpcurrentFrame, playerX , playerY);
+        }
+        else if(state == GameSta.DROP){
+
+            spriteBatch.draw(DropcurrentFrame, playerX , playerY);
+        }
+
 		spriteBatch.end();
 
+        spriteBatch.begin();
         stage.draw();
-//        UiBatch.begin();
-
-//        UiBatch.end();
+        spriteBatch.end();
 
 
     }
@@ -220,12 +336,9 @@ public class GameScreen implements Screen {
 
     @Override
     public void pause() {
-        pauseGame();
+
     }
 
-    private void pauseGame() {
-        gamestatus=Game_PAUSE;
-    }
 
     @Override
     public void resume() {
