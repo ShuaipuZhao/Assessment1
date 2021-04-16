@@ -316,7 +316,7 @@ public class GameScreen implements Screen {
         BeeAnimation=new Animation(0.4f,BeeFrames);
         BeestateTime=0.0f;
 
-        DeadSheet=new Texture(Gdx.files.internal("slime.png"));
+        DeadSheet=new Texture(Gdx.files.internal("deading.png"));
         temp = TextureRegion.split(DeadSheet, DeadSheet.getWidth() / 3, DeadSheet.getHeight() / 1);
         DeadFrames = new TextureRegion[3 * 1];
         index = 0;
