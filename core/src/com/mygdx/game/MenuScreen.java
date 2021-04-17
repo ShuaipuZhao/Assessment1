@@ -14,12 +14,13 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 public class MenuScreen implements Screen {
+
     MyGdxGame game;
 
     private SpriteBatch batch;
     private Skin skin;
     private Stage stage;
-
+    //Constructor
     public MenuScreen(MyGdxGame game){
 
         this.game=game;

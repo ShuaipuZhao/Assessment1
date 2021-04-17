@@ -34,6 +34,7 @@ import javax.swing.JViewport;
 
 public class GameScreen implements Screen {
     //running page divide to 4*2
+    //initial variable
     private static final int FRAME_COLS =4;
     private static final int FRAME_ROWS =2;
     private Texture walkSheet;
@@ -55,8 +56,6 @@ public class GameScreen implements Screen {
     private TextureRegion DropcurrentFrame;
     private float DropstateTime;
 
-
-
     private Texture DeadSheet;
     private TextureRegion[] DeadFrames;
     private Animation DeadAnimation;
@@ -76,8 +75,6 @@ public class GameScreen implements Screen {
 
     private Stage stage;
     private Skin skin;
-
-
     SpriteBatch spriteBatch;
     SpriteBatch UiBatch;
     TiledMap tiledMap;
@@ -89,6 +86,7 @@ public class GameScreen implements Screen {
     private float playerY;
     private float slimeX=400f;
 
+    //enumeration type class show all situation of animation
     enum GameSta{
         RUN,
         PAUSE,
@@ -111,12 +109,15 @@ public class GameScreen implements Screen {
     Rectangle body;
 
     Slime[] s;
+
+    //Constructor
     public GameScreen(MyGdxGame game) {
 
         this.game = game;
     }
     public void create() {
 
+        //initial is running
         state = GameSta.RUN;
         prestate = state;
         Gdx.app.log("GameScreen: ","gameScreen create");
@@ -127,13 +128,14 @@ public class GameScreen implements Screen {
         skin = new Skin(Gdx.files.internal("gui/uiskin.json"));
         stage = new Stage();
 
-
+        //add quit button in pause stage
         final TextButton QuitButton = new TextButton("Quit", skin, "default");
         QuitButton.getLabel().setFontScale(3.0f);
         QuitButton.setWidth(400f);
         QuitButton.setHeight(100f);
         QuitButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 100f);
         stage.addActor(QuitButton);
+        //while click quit button quit the game
         QuitButton.addListener(new ClickListener() {
             @Override
             public void clicked (InputEvent event, float x, float y) {
@@ -141,6 +143,7 @@ public class GameScreen implements Screen {
             }
         });
 
+        //add continue button to overload pause to continue
         final TextButton ContinueButton = new TextButton("Continue", skin, "default");
         ContinueButton.getLabel().setFontScale(3.0f);
         ContinueButton.setWidth(400f);
@@ -149,6 +152,7 @@ public class GameScreen implements Screen {
         stage.addActor(ContinueButton);
         Gdx.input.setInputProcessor(stage);
         ContinueButton.setVisible(false);
+        //while click the continue button pause button back
         ContinueButton.addListener(new ClickListener() {
             @Override
             public void clicked (InputEvent event, float x, float y) {
@@ -158,6 +162,8 @@ public class GameScreen implements Screen {
                 PauseButton.setVisible(true);
             }
         });
+
+        //add a congratulation
         Finishtext = new Label("You Win",skin,"default");
         Finishtext.setFontScale(5.0f);
         Finishtext.setWidth(400f);
@@ -166,7 +172,7 @@ public class GameScreen implements Screen {
         Finishtext.setVisible(false);
         stage.addActor(Finishtext);
 
-
+        //add a restart button
         RestartButton = new TextButton("Restart", skin, "default");
         RestartButton.getLabel().setFontScale(3.0f);
         RestartButton.setWidth(400f);
@@ -182,6 +188,7 @@ public class GameScreen implements Screen {
             }
         });
 
+        //add a button to next level
         NextButton = new TextButton("Next Level", skin, "default");
         NextButton.getLabel().setFontScale(3.0f);
         NextButton.setWidth(400f);
@@ -197,6 +204,7 @@ public class GameScreen implements Screen {
             }
         });
 
+        //add a button back to menu
         BackButton = new TextButton("Back to menu", skin, "default");
         BackButton.getLabel().setFontScale(3.0f);
         BackButton.setWidth(400f);
@@ -262,13 +270,13 @@ public class GameScreen implements Screen {
         playerX = camera.position.x;
         playerY = camera.position.y;
 
-
+        //give actor and slime a square volume
         body = new Rectangle();
         body.setSize(256f,256f);
         body.setPosition(playerX,playerY);
 
 
-                //take out each frame put into to array to display
+        //take out each frame put into to array to display
         walkSheet=new Texture(Gdx.files.internal("running.png"));
         TextureRegion[][] temp = TextureRegion.split(walkSheet, walkSheet.getWidth() / FRAME_COLS, walkSheet.getHeight() / FRAME_ROWS);
         walkFrames = new TextureRegion[FRAME_COLS * FRAME_ROWS];
@@ -299,7 +307,7 @@ public class GameScreen implements Screen {
 
 
 
-
+        //take out each frame put into to array to display
         DropSheet=new Texture(Gdx.files.internal("jumping end.png"));
         temp = TextureRegion.split(DropSheet, DropSheet.getWidth() / 2, DropSheet.getHeight() / 1);
         DropFrames = new TextureRegion[2 * 1];
@@ -316,7 +324,7 @@ public class GameScreen implements Screen {
 
 
 
-
+        //take out each frame put into to array to display
         BeeSheet=new Texture(Gdx.files.internal("bee.png"));
         temp = TextureRegion.split(BeeSheet, BeeSheet.getWidth() / 2, BeeSheet.getHeight() / 1);
         BeeFrames = new TextureRegion[2 * 1];
@@ -344,13 +352,15 @@ public class GameScreen implements Screen {
         DeadstateTime=0.0f;
 
 
-
+        //add a background music
         music=Gdx.audio.newMusic(Gdx.files.internal("fanfare.ogg"));
         music.setLooping(true);
         music.play();
         //Boing Raw Copyright 2005 cfork <http://freesound.org/people/cfork/> Boing Jump Copyright 2012 Iwan Gabovitch <http://qubodup.net>
         sound=Gdx.audio.newSound(Gdx.files.internal("qubodup-cfork-ccby3-jump.ogg"));
 
+
+        //add a array for slime
         s = new Slime[3];
         s[0] = new Slime(1000f,Gdx.graphics.getWidth() / 4-135f);
         s[1] = new Slime(3000f,Gdx.graphics.getWidth() / 4-135f);
@@ -378,29 +388,33 @@ public class GameScreen implements Screen {
         tiledMapRenderer.render();
 
 
-
+        //while running, camera, slime and player are moving,
         if(state == GameSta.RUN ){
             stateTime += Gdx.graphics.getDeltaTime();
             camera.position.x += 10;
             playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
             slimeX= -1.5f;
+            //while jumping, play the jump start animation
         }else if(state == GameSta.JUMP){
             JumpcurrentFrame = (TextureRegion) JumpAnimation.getKeyFrame(JumpstateTime, false);
             JumpstateTime += Gdx.graphics.getDeltaTime();
             camera.position.x += 10;
             playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
             slimeX= -1.5f;
+            //while droping, play jump end animation
         } else if(state == GameSta.DROP){
             DropcurrentFrame = (TextureRegion) DropAnimation.getKeyFrame(DropstateTime, false);
             DropstateTime += Gdx.graphics.getDeltaTime();
             camera.position.x += 10;
             playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
             slimeX= -1.5f;
+            //while pause camera and player stop move
         }else if(state == GameSta.PAUSE){
             stateTime += 0;
             camera.position.x += 0;
             playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
             slimeX-=0;
+            //while deading, play dead animation
         }else if(state == GameSta.DEAD){
             DeadcurrentFrame = (TextureRegion) DeadAnimation.getKeyFrame(DeadstateTime, false);
             DeadstateTime += Gdx.graphics.getDeltaTime();;
@@ -409,8 +423,10 @@ public class GameScreen implements Screen {
             slimeX-=0;
         }
 
+        //make player on the grass
         if(state == GameSta.RUN){
             playerY = Gdx.graphics.getHeight() /2-130f;
+            //limit the height of player if player height more than 600, must drop
         }else if(state == GameSta.JUMP){
 
             playerY += 4;
@@ -421,6 +437,7 @@ public class GameScreen implements Screen {
                 // reset jump animation
                 JumpstateTime=0.0f;
             }
+            //make sure player is always on the grass
         }else if(state == GameSta.DROP){
             playerY -= 4;
             if(playerY <= Gdx.graphics.getHeight() /2-130f){
@@ -429,6 +446,7 @@ public class GameScreen implements Screen {
                 DropstateTime=0.0f;
             }
         }
+        //make sure player not move out to the map
        if(playerX >=17500f-camera.viewportWidth/2){
            state=GameSta.FINISH;
            stateTime += 0;
