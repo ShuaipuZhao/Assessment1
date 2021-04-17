@@ -110,7 +110,7 @@ public class GameScreen implements Screen {
 
     Rectangle body;
 
-    Slime s;
+    Slime[] s;
     public GameScreen(MyGdxGame game) {
 
         this.game = game;
@@ -128,6 +128,18 @@ public class GameScreen implements Screen {
         stage = new Stage();
 
 
+        final TextButton QuitButton = new TextButton("Quit", skin, "default");
+        QuitButton.getLabel().setFontScale(3.0f);
+        QuitButton.setWidth(400f);
+        QuitButton.setHeight(100f);
+        QuitButton.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 100f);
+        stage.addActor(QuitButton);
+        QuitButton.addListener(new ClickListener() {
+            @Override
+            public void clicked (InputEvent event, float x, float y) {
+                Gdx.app.exit();
+            }
+        });
 
         final TextButton ContinueButton = new TextButton("Continue", skin, "default");
         ContinueButton.getLabel().setFontScale(3.0f);
@@ -152,6 +164,7 @@ public class GameScreen implements Screen {
         Finishtext.setHeight(100f);
         Finishtext.setPosition(Gdx.graphics.getWidth() /2 - 200f, Gdx.graphics.getHeight()/2 + 150f);
         Finishtext.setVisible(false);
+        stage.addActor(Finishtext);
 
 
         RestartButton = new TextButton("Restart", skin, "default");
@@ -213,13 +226,14 @@ public class GameScreen implements Screen {
         JumpButton.setPosition(Gdx.graphics.getWidth()/2 - 500f, Gdx.graphics.getHeight()/2 - 500f);
         stage.addActor(JumpButton);
         Gdx.input.setInputProcessor(stage);
-
+        QuitButton.setVisible(false);
         PauseButton.addListener(new ClickListener() {
             @Override
             public void clicked (InputEvent event, float x, float y) {
                 state = GameSta.PAUSE;
                 PauseButton.setVisible(false);
                 ContinueButton.setVisible(true);
+                QuitButton.setVisible(true);
             }
         });
 
@@ -265,7 +279,7 @@ public class GameScreen implements Screen {
             }
         }
         //set the speed for each frame
-        walkAnimation=new Animation(0.033f,walkFrames);
+        walkAnimation=new Animation(0.03f,walkFrames);
         stateTime=0.0f;
 
 
@@ -326,7 +340,7 @@ public class GameScreen implements Screen {
             }
         }
         //set the speed for each frame
-        DeadAnimation=new Animation(0.4f,DeadFrames);
+        DeadAnimation=new Animation(0.2f,DeadFrames);
         DeadstateTime=0.0f;
 
 
@@ -337,8 +351,10 @@ public class GameScreen implements Screen {
         //Boing Raw Copyright 2005 cfork <http://freesound.org/people/cfork/> Boing Jump Copyright 2012 Iwan Gabovitch <http://qubodup.net>
         sound=Gdx.audio.newSound(Gdx.files.internal("qubodup-cfork-ccby3-jump.ogg"));
 
-
-        s = new Slime(1000f,Gdx.graphics.getWidth() / 4-135f);
+        s = new Slime[3];
+        s[0] = new Slime(1000f,Gdx.graphics.getWidth() / 4-135f);
+        s[1] = new Slime(3000f,Gdx.graphics.getWidth() / 4-135f);
+        s[2] = new Slime(5000f,Gdx.graphics.getWidth() / 4-135f);
   }
     public void render(float f) {
         Gdx.app.log("GameScreen: ","gameScreen render");
@@ -385,6 +401,12 @@ public class GameScreen implements Screen {
             camera.position.x += 0;
             playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
             slimeX-=0;
+        }else if(state == GameSta.DEAD){
+            DeadcurrentFrame = (TextureRegion) DeadAnimation.getKeyFrame(DeadstateTime, false);
+            DeadstateTime += Gdx.graphics.getDeltaTime();;
+            camera.position.x += 0;
+            playerX = camera.position.x - Gdx.graphics.getWidth() / 4;
+            slimeX-=0;
         }
 
         if(state == GameSta.RUN){
@@ -407,7 +429,7 @@ public class GameScreen implements Screen {
                 DropstateTime=0.0f;
             }
         }
-       if(playerX + Gdx.graphics.getWidth() >=17500f){
+       if(playerX >=17500f-camera.viewportWidth/2){
            state=GameSta.FINISH;
            stateTime += 0;
            camera.position.x += 0;
@@ -416,6 +438,8 @@ public class GameScreen implements Screen {
            BackButton.setVisible(true);
            JumpButton.setVisible(false);
            PauseButton.setVisible(false);
+
+           Finishtext.setVisible(true);
        }
 
         camera.update();
@@ -438,15 +462,34 @@ public class GameScreen implements Screen {
 
             spriteBatch.draw(DropcurrentFrame, playerX , playerY);
         }
+        else if(state == GameSta.DEAD){
 
-
-        if(body.contains(s.body) == true){
-            state = GameSta.DEAD;
-            Gdx.app.log("hit","Hittttttt");
+            spriteBatch.draw(DeadcurrentFrame, playerX , playerY);
         }
-        s.draw(slimeX,spriteBatch,f);
-        //spriteBatch.draw(SlimecurrentFrame, Gdx.graphics.getWidth()*5+500f+slimeX, Gdx.graphics.getWidth() / 4-135f);
-        //spriteBatch.draw(SlimecurrentFrame, Gdx.graphics.getWidth()*3+1500f+slimeX, Gdx.graphics.getWidth() / 4-135f);
+
+        for(int i = 0 ; i < s.length;i++) {
+            if (body.contains(s[i].body) == true) {
+                state = GameSta.DEAD;
+                RestartButton.setVisible(true);
+                JumpButton.setVisible(false);
+                PauseButton.setVisible(false);
+                Finishtext.setText("You Lose");
+                Finishtext.setVisible(true);
+                Gdx.app.log("hit", "Hittttttt");
+            }
+        }
+        if(state != GameSta.PAUSE){
+            for(int i = 0 ; i < s.length;i++){
+                s[i].draw(slimeX,spriteBatch,f);
+            }
+        }else{
+            for(int i = 0 ; i < s.length;i++){
+                s[i].draw(0,spriteBatch,f);
+            }
+        }
+
+
+
 		spriteBatch.end();
 
         spriteBatch.begin();
